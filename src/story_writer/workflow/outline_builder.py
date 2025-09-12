@@ -1,4 +1,3 @@
-import os
 from copy import deepcopy
 from typing import Dict, List
 
@@ -7,10 +6,10 @@ from autogen_agentchat.messages import TextMessage
 from autogen_agentchat.ui import Console
 from autogen_core import CancellationToken
 from autogen_core.models import ChatCompletionClient
-from autogen_ext.models.openai import OpenAIChatCompletionClient
 from json_repair import repair_json
 from loguru import logger
 
+from story_writer.config import DEFAULT_MODEL_CLIENT
 from story_writer.prompts import (
     EVENT_COMPLETE_SYSTEM_PROMPT,
     EVENT_COMPLETE_USER_PROMPT,
@@ -23,18 +22,6 @@ from story_writer.prompts import (
 )
 from story_writer.schemas import Event, EventCompleteness, EventValidate
 
-DEFAULT_MODEL_CLIENT = OpenAIChatCompletionClient(
-    model="qwen3-235b-a22b-instruct-2507",
-    base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
-    api_key=os.environ["DASHSCOPE_API_KEY"],
-    model_info={
-        "vision": False,
-        "function_calling": True,
-        "json_output": True,
-        "family": "unknown",
-        "structured_output": False,
-    },
-)
 EventGraph = Dict[str, Event]
 
 

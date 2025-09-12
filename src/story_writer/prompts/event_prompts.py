@@ -1,7 +1,8 @@
 import json
 
-from story_writer.schemas import Event, EventValidate
+from story_writer.schemas import Event, EventCompleteness, EventValidate
 
+############################## EventSeed prompt ##############################
 EVENT_SEED_SYSTEM_PROMPT = f"""You are EventSeedAgent. 
 Your task: given a story premise and an existing partial Event Graph, generate one or multiple candidate events that extend the graph.
 Output MUST be valid JSON following the Event schema.
@@ -20,10 +21,17 @@ EVENT_SEED_USER_PROMPT = """Premise:
 PartialGraph:
 {partial_graph}
 
+CompletenessStatus:
+Reason: {completeness_reason}
+MissingElements: {missing_elements}
+
 Requirements:
 - Produce up to {k_candidates} candidate events
+- Focus especially on covering the missing elements listed in CompletenessStatus
+- Ensure consistency with the existing PartialGraph
 """
 
+############################## EventValidator prompt ##############################
 EVENT_VALID_SYSTEM_PROMPT = f"""You are EventValidatorAgent.
 Your job: examine each candidate event (JSON) and validate it against the provided Premise and PartialGraph.
 Validation rules (apply in order):
@@ -55,6 +63,7 @@ Candidates:
 {candidates}
 """
 
+############################## EventSeed revise prompt ##############################
 EVENT_REVISE_SYSTEM_PROMPT = f"""You are EventSeedAgent. Your role is to generate or revise story events in structured JSON format. 
 This time, you are asked to REVISE an existing candidate event according to the validator's feedback. 
 Strictly follow these rules:
@@ -79,4 +88,36 @@ OriginalCandidate (to be revised):
 
 ValidatorFeedback (issues to fix):
 {validator_feedback}
+"""
+
+############################## EventCompleteness prompt ##############################
+EVENT_COMPLETE_SYSTEM_PROMPT = f"""You are EventCompletenessAgent.
+Your job is to analyze the current Partial Event Graph and decide whether the story outline is complete.
+
+Completeness definition:
+1. Narrative arc: Beginning, Conflict, Climax, and Resolution should all be present.
+2. Character coverage: All major characters from the premise should appear at least once.
+3. Causal chain: At least one coherent chain of cause-effect relations should exist.
+4. No major gaps: Events should connect logically without large unexplained jumps.
+
+Output MUST be valid JSON following the EventCompleteness schema.
+
+EventCompleteness schema:
+{json.dumps(EventCompleteness.model_json_schema(), indent=2, ensure_ascii=False)}
+
+Requirements:
+- Always output a JSON object, never plain text
+- `complete=true` if the outline is narratively sufficient
+- If incomplete, set `complete=false` and list what is missing in `missing_elements`
+"""
+
+EVENT_COMPLETE_USER_PROMPT = """Premise:
+{premise}
+
+PartialGraph:
+{partial_graph}
+
+Task:
+- Analyze whether the outline is complete.
+- Return a JSON object following the EventCompleteness schema.
 """

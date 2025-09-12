@@ -16,8 +16,8 @@ async def main(k_candidates: int, max_revise: int, max_events: int, premise: str
 
 if __name__ == "__main__":
     k_candidates = 5
-    max_revise = 5
-    max_events = 10
+    max_revise = 3
+    max_events = 30
     premise = "A battle-hardened veteran and his loyal comrade travel through a mountain range after a failed campaign. Strange signs suggest someone betrayed them."
     save_path = "outline.json"
 

@@ -12,6 +12,8 @@ from json_repair import repair_json
 from loguru import logger
 
 from story_writer.prompts import (
+    EVENT_COMPLETE_SYSTEM_PROMPT,
+    EVENT_COMPLETE_USER_PROMPT,
     EVENT_REVISE_SYSTEM_PROMPT,
     EVENT_REVISE_USER_PROMPT,
     EVENT_SEED_SYSTEM_PROMPT,
@@ -19,7 +21,7 @@ from story_writer.prompts import (
     EVENT_VALID_SYSTEM_PROMPT,
     EVENT_VALID_USER_PROMPT,
 )
-from story_writer.schemas import Event, EventValidate
+from story_writer.schemas import Event, EventCompleteness, EventValidate
 
 DEFAULT_MODEL_CLIENT = OpenAIChatCompletionClient(
     model="qwen3-235b-a22b-instruct-2507",
@@ -40,7 +42,7 @@ class OutlineBuilder:
     def __init__(
         self,
         model_client: ChatCompletionClient = DEFAULT_MODEL_CLIENT,
-        k_candidates: int = 3,
+        k_candidates: int = 5,
         max_revise: int = 3,
         max_events: int = 30,
     ) -> None:
@@ -70,9 +72,33 @@ class OutlineBuilder:
             model_client_stream=True,
             system_message=EVENT_REVISE_SYSTEM_PROMPT,
         )
+        self.event_completeness_agent = AssistantAgent(
+            name="event_completeness_agent",
+            model_client=model_client,
+            model_client_stream=True,
+            system_message=EVENT_COMPLETE_SYSTEM_PROMPT,
+        )
         self.k_candidates = k_candidates
         self.max_revise = max_revise
         self.max_events = max_events
+
+    def _resolve_event_id_conflict(self, graph: EventGraph, event: Event) -> Event:
+        """Resolve event id conflict
+
+        Args:
+            graph (EventGraph): Event graph
+            event (Event): Event
+
+        Returns:
+            Event: Resolved event
+        """
+        eid = event.event_id
+        if eid in graph:
+            suffix = 1
+            while f"{eid}_{suffix}" in graph:
+                suffix += 1
+            event.event_id = f"{eid}_{suffix}"
+        return event
 
     def _parse_event(self, event_text: str) -> List[Event]:
         """Parse event text into Event objects
@@ -120,26 +146,55 @@ class OutlineBuilder:
                 logger.warning(f"Failed to parse event: {e}")
         return event_val_list
 
-    def _resolve_event_id_conflict(self, graph: EventGraph, event: Event) -> Event:
-        """Resolve event id conflict
+    def _parse_event_completeness(self, completeness_text: str) -> EventCompleteness:
+        """Parse event completeness text into EventCompleteness objects
 
         Args:
-            graph (EventGraph): Event graph
-            event (Event): Event
+            completeness_text (str): Event completeness text
 
         Returns:
-            Event: Resolved event
+            EventCompleteness: EventCompleteness object
         """
-        eid = event.event_id
-        if eid in graph:
-            suffix = 1
-            while f"{eid}_{suffix}" in graph:
-                suffix += 1
-            event.event_id = f"{eid}_{suffix}"
-        return event
+        completeness_obj = repair_json(
+            completeness_text, ensure_ascii=False, return_objects=True
+        )
+        try:
+            return EventCompleteness.model_validate(completeness_obj)
+        except Exception as e:
+            logger.warning(f"Failed to parse completeness check: {e}")
+            return EventCompleteness(
+                complete=False, reason="Parse error", missing_elements=["unknown"]
+            )
+
+    async def _check_completeness(
+        self, premise: str, partial_graph: EventGraph
+    ) -> EventCompleteness:
+        """Check completeness of the outline
+
+        Args:
+            premise (str): Story premise
+            partial_graph (EventGraph): Partial event graph
+
+        Returns:
+            EventCompleteness: EventCompleteness object
+        """
+        completeness_task = EVENT_COMPLETE_USER_PROMPT.format(
+            premise=premise,
+            partial_graph=[e.model_dump() for e in partial_graph.values()],
+        )
+        await self.event_completeness_agent.on_reset(CancellationToken())
+        completeness_result = await Console(
+            self.event_completeness_agent.run_stream(task=completeness_task)
+        )
+        assert isinstance(completeness_result.messages[-1], TextMessage)
+        return self._parse_event_completeness(completeness_result.messages[-1].content)
 
     async def _eventseed_generate(
-        self, premise: str, partial_graph: EventGraph
+        self,
+        premise: str,
+        partial_graph: EventGraph,
+        completeness_reason: str,
+        missing_elements: List[str],
     ) -> List[Event]:
         """Generate event candidates
 
@@ -154,6 +209,8 @@ class OutlineBuilder:
             premise=premise,
             partial_graph=[e.model_dump() for e in partial_graph.values()],
             k_candidates=self.k_candidates,
+            completeness_reason=completeness_reason,
+            missing_elements=missing_elements,
         )
         await self.event_seed_agent.on_reset(CancellationToken())  # clear model context
         event_seed_task_result = await Console(
@@ -251,19 +308,38 @@ class OutlineBuilder:
                 logger.info("Max events reached, stopping")
                 break
 
-            # 1. generate K candidate events
-            logger.info(f"Generating event candidates, iteration {gen_iter + 1}/{max_total_iters}")
-            event_candidates = await self._eventseed_generate(premise, partial_graph)
+            # 1. check completeness
+            logger.info(
+                f"Checking completeness, iteration {gen_iter + 1}/{max_total_iters}"
+            )
+            completeness = await self._check_completeness(premise, partial_graph)
+            if completeness.complete:
+                logger.info(f"Outline complete: {completeness.reason}")
+                break
+            logger.info(f"Outline incomplete: {completeness.reason}")
+
+            # 2. generate K candidate events
+            logger.info(
+                f"Generating event candidates, iteration {gen_iter + 1}/{max_total_iters}"
+            )
+            event_candidates = await self._eventseed_generate(
+                premise,
+                partial_graph,
+                completeness.reason,
+                completeness.missing_elements,
+            )
             logger.info(f"Generated {len(event_candidates)} event candidates")
             logger.info(f"Event candidates: {event_candidates}")
             if len(event_candidates) == 0:
                 logger.warning("No event candidates generated, stopping")
                 break
 
-            # 2. validate each candidate and revise if needed
+            # 3. validate each candidate and revise if needed
             for revise_iter in range(self.max_revise):
                 # generate K validations
-                logger.info(f"Validating event candidates, iteration {revise_iter + 1}/{self.max_revise}")
+                logger.info(
+                    f"Validating event candidates, iteration {revise_iter + 1}/{self.max_revise}"
+                )
                 event_validates = await self._eventvalidator_validate(
                     premise, partial_graph, event_candidates
                 )

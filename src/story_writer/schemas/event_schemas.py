@@ -39,3 +39,17 @@ class EventValidate(BaseModel):
     event_id: str = Field(..., description="ID of the event, e.g. E1")
     suggestion: str = Field(..., description="Suggestion for the event")
     valid: bool = Field(..., description="Whether the event is valid")
+
+
+class EventCompleteness(BaseModel):
+    complete: bool = Field(
+        ..., description="Whether the outline is complete enough to stop generation"
+    )
+    reason: str = Field(
+        ...,
+        description="Reasoning for why the outline is considered complete or incomplete",
+    )
+    missing_elements: List[str] = Field(
+        default_factory=list,
+        description="Key missing elements (e.g., climax, resolution, character arcs)",
+    )

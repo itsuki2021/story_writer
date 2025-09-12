@@ -27,15 +27,15 @@ class Event(BaseModel):
     goal: str = Field(..., description="Goal of the event")
     conflict: str = Field(..., description="Conflict involved in the event")
     relations: List[Relation] = Field(..., description="Relations between each events")
-
-
-class EventValidate(BaseModel):
-    event_id: str = Field(..., description="ID of the event, e.g. E1")
-    suggestion: str = Field(..., description="Suggestion for the event")
     novelty_score: float = Field(
         ..., description="Novelty score of the event, 0-1, 1 being most novel"
     )
     coherence_score: float = Field(
         ..., description="Coherence score of the event, 0-1, 1 being most coherent"
     )
+
+
+class EventValidate(BaseModel):
+    event_id: str = Field(..., description="ID of the event, e.g. E1")
+    suggestion: str = Field(..., description="Suggestion for the event")
     valid: bool = Field(..., description="Whether the event is valid")

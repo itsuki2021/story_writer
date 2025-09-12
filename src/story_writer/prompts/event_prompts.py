@@ -62,6 +62,7 @@ Strictly follow these rules:
 2. You MUST correct issues raised in ValidatorFeedback (e.g., temporal inconsistency, invalid relations, character state conflicts).
 3. Ensure coherence with the Premise and consistency with the PartialGraph.
 4. Do not output any explanation or commentary outside JSON.
+5. If the feedback cannot be fixed, discard the event directly.
 
 Event schema:
 {json.dumps(Event.model_json_schema(), indent=2, ensure_ascii=False)}

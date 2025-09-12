@@ -120,6 +120,24 @@ class OutlineBuilder:
                 logger.warning(f"Failed to parse event: {e}")
         return event_val_list
 
+    def _resolve_event_id_conflict(self, graph: EventGraph, event: Event) -> Event:
+        """Resolve event id conflict
+
+        Args:
+            graph (EventGraph): Event graph
+            event (Event): Event
+
+        Returns:
+            Event: Resolved event
+        """
+        eid = event.event_id
+        if eid in graph:
+            suffix = 1
+            while f"{eid}_{suffix}" in graph:
+                suffix += 1
+            event.event_id = f"{eid}_{suffix}"
+        return event
+
     async def _eventseed_generate(
         self, premise: str, partial_graph: EventGraph
     ) -> List[Event]:
@@ -216,23 +234,42 @@ class OutlineBuilder:
     async def build_outline(
         self, premise: str, partial_graph: EventGraph = {}
     ) -> EventGraph:
+        """Build story outline
+
+        Args:
+            premise (str): Story premise
+            partial_graph (EventGraph, optional): Partial event graph. Defaults to {}.
+
+        Returns:
+            EventGraph: Event graph (story outline)
+        """
+        logger.info("Building story outline")
         partial_graph = deepcopy(partial_graph)
-        event_counter = 0
-        while event_counter < self.max_events:
+        max_total_iters = self.max_events * self.max_revise * 2
+        for gen_iter in range(max_total_iters):
+            if len(partial_graph) >= self.max_events:  # max events reached
+                logger.info("Max events reached, stopping")
+                break
+
             # 1. generate K candidate events
+            logger.info(f"Generating event candidates, iteration {gen_iter + 1}/{max_total_iters}")
             event_candidates = await self._eventseed_generate(premise, partial_graph)
             logger.info(f"Generated {len(event_candidates)} event candidates")
-            logger.debug(f"Event candidates: {event_candidates}")
+            logger.info(f"Event candidates: {event_candidates}")
             if len(event_candidates) == 0:
                 logger.warning("No event candidates generated, stopping")
                 break
+
             # 2. validate each candidate and revise if needed
-            accepted_any = False
-            for _ in range(self.max_revise):
+            for revise_iter in range(self.max_revise):
+                # generate K validations
+                logger.info(f"Validating event candidates, iteration {revise_iter + 1}/{self.max_revise}")
                 event_validates = await self._eventvalidator_validate(
                     premise, partial_graph, event_candidates
                 )
-                logger.debug(f"Event validations: {event_validates}")
+                logger.info(f"Generated {len(event_validates)} event validations")
+                logger.info(f"Event validations: {event_validates}")
+                # filter out invalid events
                 event_candidate_dict = {e.event_id: e for e in event_candidates}
                 event_validates_dict = {e.event_id: e for e in event_validates}
                 event_ids = [
@@ -240,17 +277,21 @@ class OutlineBuilder:
                     for event_id in event_candidate_dict.keys()
                     if event_id in event_validates_dict
                 ]
+                if len(event_ids) < len(event_candidates):
+                    logger.warning(
+                        f"Some event candidates were not validated, {len(event_ids)}/{len(event_candidates)}"
+                    )
                 # update partial graph with valid events
                 event_passed_dict = {
                     event_id: event_candidate_dict[event_id]
                     for event_id in event_ids
                     if event_validates_dict[event_id].valid
                 }
-                partial_graph.update(event_passed_dict)
-                event_counter += len(event_passed_dict)
-                accepted_any |= len(event_passed_dict) > 0
+                for event_id, event in event_passed_dict.items():
+                    event = self._resolve_event_id_conflict(partial_graph, event)
+                    partial_graph[event.event_id] = event
                 logger.info(
-                    f"Accepted {len(event_passed_dict)} events, {event_counter} total"
+                    f"Accepted {len(event_passed_dict)} events, {len(partial_graph)} total"
                 )
                 # revise events
                 event_need_revised = [
@@ -258,22 +299,22 @@ class OutlineBuilder:
                     for event_id in event_ids
                     if not event_validates_dict[event_id].valid
                 ]
-                if len(event_need_revised) == 0:
-                    break
                 event_need_revised_feedback = [
                     event_validates_dict[event_id]
                     for event_id in event_ids
                     if not event_validates_dict[event_id].valid
                 ]
+                if len(event_need_revised) == 0:
+                    break  # no need to revise
+                logger.info(f"Need to revise {len(event_need_revised)} events")
                 event_candidates = await self._eventrevise_revise(
                     premise,
                     partial_graph,
                     event_need_revised,
                     event_need_revised_feedback,
                 )
-                logger.debug(f"Revised event candidates: {event_candidates}")
-            if not accepted_any:
-                logger.warning("No event accepted, stopping")
-                break
+                logger.info(f"Revised {len(event_candidates)} event candidates")
+                logger.info(f"Revised event candidates: {event_candidates}")
+
         logger.info(f"Accepted {len(partial_graph)} events")
         return partial_graph

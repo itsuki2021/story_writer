@@ -2,8 +2,8 @@ import json
 
 from story_writer.schemas import Event, EventCompleteness, EventValidate
 
-############################## EventSeed prompt ##############################
-EVENT_SEED_SYSTEM_PROMPT = f"""You are EventSeedAgent. 
+# EventSeed prompt
+EVENT_SEED_SYSTEM_PROMPT = f"""You are EventSeedAgent.
 Your task: given a story premise and an existing partial Event Graph, generate one or multiple candidate events that extend the graph.
 Output MUST be valid JSON following the Event schema.
 
@@ -31,7 +31,7 @@ Requirements:
 - Ensure consistency with the existing PartialGraph
 """
 
-############################## EventValidator prompt ##############################
+# EventValidator prompt
 EVENT_VALID_SYSTEM_PROMPT = f"""You are EventValidatorAgent.
 Your job: examine each candidate event (JSON) and validate it against the provided Premise and PartialGraph.
 Validation rules (apply in order):
@@ -63,9 +63,9 @@ Candidates:
 {candidates}
 """
 
-############################## EventSeed revise prompt ##############################
-EVENT_REVISE_SYSTEM_PROMPT = f"""You are EventSeedAgent. Your role is to generate or revise story events in structured JSON format. 
-This time, you are asked to REVISE an existing candidate event according to the validator's feedback. 
+# EventSeed revise prompt
+EVENT_REVISE_SYSTEM_PROMPT = f"""You are EventSeedAgent. Your role is to generate or revise story events in structured JSON format.
+This time, you are asked to REVISE an existing candidate event according to the validator's feedback.
 Strictly follow these rules:
 1. Always return a JSON array of one or more candidate events, following the Event schema.
 2. You MUST correct issues raised in ValidatorFeedback (e.g., temporal inconsistency, invalid relations, character state conflicts).
@@ -90,7 +90,7 @@ ValidatorFeedback (issues to fix):
 {validator_feedback}
 """
 
-############################## EventCompleteness prompt ##############################
+# EventCompleteness prompt
 EVENT_COMPLETE_SYSTEM_PROMPT = f"""You are EventCompletenessAgent.
 Your job is to analyze the current Partial Event Graph and decide whether the story outline is complete.
 

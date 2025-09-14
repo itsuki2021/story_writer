@@ -29,4 +29,5 @@ default = true
 [dependency-groups]
 dev = [
     "jupyter>=1.1.1",
+    "pre-commit>=4.3.0",
 ]

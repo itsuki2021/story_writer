@@ -4,5 +4,5 @@ reference paper: [STORYWRITER: A Multi-Agent Framework for Long Story Generation
 
 ## TODO List
 - [x] Outline agent
-- [ ] Planning agent
+- [x] Planning agent
 - [ ] Writing agent

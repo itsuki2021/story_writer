@@ -2,7 +2,7 @@ from typing import Dict, List
 
 from pydantic import BaseModel, Field
 
-from story_writer.schemas import Event
+from story_writer.schemas import Character, Event
 
 
 class SubEvent(BaseModel):
@@ -25,10 +25,7 @@ class SubEvent(BaseModel):
         ...,
         description='A detailed description of what happens in this sub-event, forming a piece of the narrative.',
     )
-    characters: List[str] = Field(
-        default_factory=list,
-        description='A list of character names involved in this sub-event.',
-    )
+    characters: List[Character] = Field(..., description='Characters involved in the sub-event')
 
 
 class Chapter(BaseModel):

@@ -63,7 +63,7 @@ class EventCompletenessAgent(AssistantAgent):
         await self.on_reset(CancellationToken())
         task = EVENT_COMPLETE_USER_PROMPT.format(
             premise=premise,
-            partial_event_list=[e.model_dump() for e in partial_event_list],
+            partial_event_list='\n'.join([e.model_dump_json() for e in partial_event_list]),
         )
         task_result = await Console(self.run_stream(task=task))
         assert isinstance(task_result.messages[-1], TextMessage)
@@ -140,7 +140,7 @@ class EventSeedAgents:
         await self.event_seed_agent.on_reset(CancellationToken())  # clear model context (history)
         task = EVENT_SEED_USER_PROMPT.format(
             premise=premise,
-            partial_event_list=[e.model_dump() for e in partial_event_list],
+            partial_event_list='\n'.join([e.model_dump_json() for e in partial_event_list]),
             completeness_reason=completeness_reason,
             missing_elements=missing_elements,
             k_candidates=k_candidates,
@@ -171,9 +171,9 @@ class EventSeedAgents:
         await self.event_revise_agent.on_reset(CancellationToken())  # clear model context (history)
         task = EVENT_REVISE_USER_PROMPT.format(
             premise=premise,
-            partial_event_list=[e.model_dump() for e in partial_event_list],
-            original_candidate=[e.model_dump() for e in original_candidate],
-            validator_feedback=[e.model_dump() for e in validator_feedback],
+            partial_event_list='\n'.join([e.model_dump_json() for e in partial_event_list]),
+            original_candidate='\n'.join([e.model_dump_json() for e in original_candidate]),
+            validator_feedback='\n'.join([e.model_dump_json() for e in validator_feedback]),
         )
         task_result = await Console(self.event_revise_agent.run_stream(task=task))
         assert isinstance(task_result.messages[-1], TextMessage)
@@ -234,8 +234,8 @@ class EventValidatorAgent(AssistantAgent):
         await self.on_reset(CancellationToken())  # clear model context (history)
         task = EVENT_VALID_USER_PROMPT.format(
             premise=premise,
-            partial_event_list=[e.model_dump() for e in partial_event_list],
-            candidates=[e.model_dump() for e in candidates],
+            partial_event_list='\n'.join([e.model_dump_json() for e in partial_event_list]),
+            candidates='\n'.join([e.model_dump_json() for e in candidates]),
         )
         task_result = await Console(self.run_stream(task=task))
         assert isinstance(task_result.messages[-1], TextMessage)  # assert model response is text
@@ -292,7 +292,8 @@ class EventRelationAgent(AssistantAgent):
             List[Relation]: List of relations
         """
         await self.on_reset(CancellationToken())
-        task = EVENT_RELATION_USER_PROMPT.format(premise=premise, event_list=[e.model_dump() for e in event_list])
+        task = EVENT_RELATION_USER_PROMPT.format(premise=premise,
+                                                 event_list='\n'.join([e.model_dump_json() for e in event_list]))
         task_result = await Console(self.run_stream(task=task))
         assert isinstance(task_result.messages[-1], TextMessage)
         relation_list = self._parse_event_relations(task_result.messages[-1].content)

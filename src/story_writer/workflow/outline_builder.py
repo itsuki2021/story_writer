@@ -324,6 +324,25 @@ class OutlineBuilder:
         self.max_val = max_val
         self.max_events = max_events
 
+    def _resolve_event_id_conflict(self, event_list: List[Event], event: Event) -> Event:
+        """Resolve event id conflict
+
+        Args:
+            event_list (List[Event]): Event list
+            event (Event): Event
+
+        Returns:
+            Event: Resolved event
+        """
+        eid = event.event_id
+        event_dict = {e.event_id: e for e in event_list}
+        if eid in event_dict:
+            suffix = 1
+            while f"{eid}_{suffix}" in event_dict:
+                suffix += 1
+            event.event_id = f"{eid}_{suffix}"
+        return event
+
     async def build_outline(self, premise: str, partial_event_list: List[Event] = []) -> EventGraph:
         """Build story outline
 
@@ -385,7 +404,9 @@ class OutlineBuilder:
                 valid_event_list = [
                     event_candidate_dict[event_id] for event_id in event_ids if event_validate_dict[event_id].valid
                 ]
-                partial_event_list.extend(valid_event_list)
+                for valid_event in valid_event_list:
+                    valid_event = self._resolve_event_id_conflict(partial_event_list, valid_event)
+                    partial_event_list.append(valid_event)
                 logger.info(f"Accepted {len(valid_event_list)} events, {len(partial_event_list)} total")
                 # revise invalid events
                 invalid_event_list = [

@@ -28,15 +28,11 @@ EVENT_COMPLETE_USER_PROMPT = """Premise:
 
 PartialEventList:
 {partial_event_list}
-
-Task:
-- Analyze whether the outline is complete.
-- Return a JSON object following the EventCompleteness schema.
 """
 
 # EventSeed prompt
 EVENT_SEED_SYSTEM_PROMPT = f"""You are EventSeedAgent.
-Your task: given a story premise and an existing Partial Event List, generate one or multiple candidate events that extend the list.
+Your task: given a story premise, an existing partial event list and completeness status, generate one or multiple candidate events that extend the list.
 Output MUST be valid JSON following the Event schema.
 
 {json.dumps(Event.model_json_schema(), indent=2, ensure_ascii=False)}
@@ -44,7 +40,8 @@ Output MUST be valid JSON following the Event schema.
 Requirements:
 1. You need to output JSON array.
 2. Each event must include time, location, characters, goal, and conflict.
-3. Keep outputs concise. Do NOT include any commentary outside JSON.
+3. Focus especially on covering the missing elements listed in CompletenessStatus
+4. Keep outputs concise. Do NOT include any commentary outside JSON.
 """
 
 EVENT_SEED_USER_PROMPT = """Premise:
@@ -59,8 +56,6 @@ MissingElements: {missing_elements}
 
 Requirements:
 - Produce up to {k_candidates} candidate events
-- Focus especially on covering the missing elements listed in CompletenessStatus
-- Ensure consistency with the existing PartialEventList
 """
 
 # EventValidator prompt
@@ -131,7 +126,7 @@ Output MUST be valid JSON array following the Relation schema.
 {json.dumps(Relation.model_json_schema(), indent=2, ensure_ascii=False)}
 
 Requirements:
-1. Generate relations with types like 'causal' (one event causes another), 'temporal' (one follows another in time), 'thematic' (shared theme or motif), or other relevant types.
+1. Generate relations for the entire set of events.
 2. For each relation, specify source_event_id (the originating event), target_event_id (the connected event), type, and a brief rationale explaining why the relation exists.
 3. Ensure relations maintain temporal, causal, and character consistency based on the premise and event details (e.g., time, characters, goals, conflicts).
 4. Avoid duplicates: do not create redundant relations (e.g., multiple identical causal links).
@@ -143,9 +138,4 @@ EVENT_RELATION_USER_PROMPT = """Premise:
 
 Event List:
 {event_list}
-
-Requirements:
-- Generate relations for the entire set of events.
-- Prioritize creating causal chains to cover narrative arcs (e.g., build-up to climax).
-- Ensure relations enhance coherence and novelty based on event scores.
 """

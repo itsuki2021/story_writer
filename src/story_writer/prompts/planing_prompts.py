@@ -4,27 +4,31 @@ from story_writer.schemas import Chapter, SubEvent
 
 # SubTasker Agent Prompt
 SUBTASKER_SYSTEM_PROMPT = f"""You are the SubTasker Agent, an expert in narrative decomposition.
-Your task is to break down a single high-level story event into a series of smaller, detailed, and chronologically coherent sub-events.
+Your task: given a premise, an EventGraph, and a single high-level story event, break down the event into a series of smaller, detailed, and chronologically coherent sub-events.
 The generated sub-events must collectively fulfill the goal and conflict of the parent event.
 Output MUST be a valid JSON array of SubEvent objects.
 
 SubEvent Schema:
 {json.dumps(SubEvent.model_json_schema(), indent=2, ensure_ascii=False)}
 
-Rules:
-1. Ensure the sub-events form a logical and sequential progression.
-2. The `sub_event_id` must follow the format '{{parent_event_id}}.{{index}}'.
-3. Do NOT include any commentary outside the JSON array.
+Requirements:
+1. Sub-events must be consistent with the parent event's time, location, characters, goal, conflict.
+2. Enhance diversity: introduce twists, sub-conflicts, or character developments.
+3. Output a single JSON object. No commentary outside JSON.
 """
 
-SUBTASKER_USER_PROMPT = """Story Premise:
+SUBTASKER_USER_PROMPT = """Premise:
 {premise}
 
-Parent Event to Decompose:
-{parent_event}
+Full Event Graph (for high-level context):
+{event_graph}
 
-Task:
-Generate a list of detailed sub-events that break down the Parent Event. Ensure the summary for each sub-event is descriptive enough for a writer to expand upon.
+TargetEventID (to expand):
+{target_event_id}
+
+Requirements:
+- Generate 3-5 sub-events.
+- Focus on richness and interweave potential (e.g., setups for future events).
 """
 
 # Weaver Agent Prompt

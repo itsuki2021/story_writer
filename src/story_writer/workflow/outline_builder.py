@@ -342,7 +342,7 @@ class OutlineBuilder:
                 logger.info('Max events reached, stopping generation')
                 break
 
-            # 1. check completeness
+            # 1. Check completeness
             logger.info(f"Checking completeness, current iteration {gen_iter + 1}, max iterations {max_total_iters}")
             completeness = await self.event_completeness_agent.check_completeness(premise, partial_event_list)
             if completeness.complete:
@@ -350,7 +350,7 @@ class OutlineBuilder:
                 break
             logger.info(f"Outline incomplete: {completeness.reason}")
 
-            # 2. generate K candidate events
+            # 2. Generate K candidate events
             logger.info(
                 f"Generating candidate events, current iteration {gen_iter + 1}, max iterations {max_total_iters}")
             candidates = await self.event_seed_agents.generate_events(
@@ -366,7 +366,7 @@ class OutlineBuilder:
                 logger.warning('No event candidates generated, stopping')
                 break
 
-            # 3. validate and revise each candidate
+            # 3. Validate and revise each candidate
             for val_iter in range(self.max_val):
                 logger.info(f"Validating candidate events, {val_iter + 1}/{self.max_val}")
                 event_validates = await self.event_validator_agent.validate_events(
@@ -406,12 +406,20 @@ class OutlineBuilder:
                 logger.info(f"Revised {len(candidates)} event candidates")
                 logger.info(f"Revised event candidates: {candidates}")
 
+        # 4. Generate relations
         logger.info(f"Accepted {len(partial_event_list)} events, generating relations")
         relations = await self.event_relation_agent.generate_ralations(
             premise=premise,
             event_list=partial_event_list,
         )
+        # filter out invalid relations
+        event_ids = {event.event_id for event in partial_event_list}
+        relations = [
+            relation for relation in relations
+            if relation.source_event_id in event_ids and relation.target_event_id in event_ids
+        ]
         logger.info(f"Generated {len(relations)} relations")
+
         event_graph = EventGraph(
             nodes=partial_event_list,
             edges=relations,

@@ -11,6 +11,7 @@ class Character(BaseModel):
 
 class Relation(BaseModel):
     type: str = Field(..., description='Type of relation, e.g. causal')
+    source_event_id: str = Field(..., description='ID of the source event')
     target_event_id: str = Field(..., description='ID of the target event')
     rationale: str = Field(..., description='Rationale for the relation')
 
@@ -24,7 +25,6 @@ class Event(BaseModel):
     characters: List[Character] = Field(..., description='Characters involved in the event')
     goal: str = Field(..., description='Goal of the event')
     conflict: str = Field(..., description='Conflict involved in the event')
-    relations: List[Relation] = Field(..., description='Relations between each events')
     novelty_score: float = Field(..., description='Novelty score of the event, 0-1, 1 being most novel')
     coherence_score: float = Field(..., description='Coherence score of the event, 0-1, 1 being most coherent')
 
@@ -45,3 +45,8 @@ class EventCompleteness(BaseModel):
         default_factory=list,
         description='Key missing elements (e.g., climax, resolution, character arcs)',
     )
+
+
+class EventGraph(BaseModel):
+    nodes: List[Event] = Field(..., description='List of events in the graph')
+    edges: List[Relation] = Field(..., description='List of relations between events')

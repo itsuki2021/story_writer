@@ -27,6 +27,7 @@ class CompressionAgent(AssistantAgent):
         super().__init__(
             name='compression_agent',
             model_client=model_client,
+            model_client_stream=True,
             system_message=COMPRESSOR_SYSTEM_PROMPT,
             *args,
             **kwargs,
@@ -88,6 +89,7 @@ class RevisionAgent(AssistantAgent):
         super().__init__(
             name='revision_agent',
             model_client=model_client,
+            model_client_stream=True,
             system_message=REVISER_SYSTEM_PROMPT,
             *args,
             **kwargs,
@@ -160,6 +162,7 @@ class WriterAgent(AssistantAgent):
         super().__init__(
             name='writer_agent',
             model_client=model_client,
+            model_client_stream=True,
             system_message=WRITER_SYSTEM_PROMPT,
             *args,
             **kwargs,

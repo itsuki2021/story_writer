@@ -29,6 +29,7 @@ class EventCompletenessAgent(AssistantAgent):
         super().__init__(
             name='event_completeness_agent',
             model_client=model_client,
+            model_client_stream=True,
             system_message=EVENT_COMPLETE_SYSTEM_PROMPT,
             *args,
             **kwargs,
@@ -193,6 +194,7 @@ class EventValidatorAgent(AssistantAgent):
         super().__init__(
             name='event_validator_agent',
             model_client=model_client,
+            model_client_stream=True,
             system_message=EVENT_VALID_SYSTEM_PROMPT,
             *args,
             **kwargs,
@@ -255,6 +257,7 @@ class EventRelationAgent(AssistantAgent):
         super().__init__(
             name='event_relation_agent',
             model_client=model_client,
+            model_client_stream=True,
             system_message=EVENT_RELATION_SYSTEM_PROMPT,
             *args,
             **kwargs,

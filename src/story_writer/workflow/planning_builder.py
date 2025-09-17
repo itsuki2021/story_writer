@@ -27,6 +27,7 @@ class SubTaskerAgent(AssistantAgent):
         super().__init__(
             name='subtasker_agent',
             model_client=model_client,
+            model_client_stream=True,
             system_message=SUBTASKER_SYSTEM_PROMPT,
             *args,
             **kwargs,
@@ -88,6 +89,7 @@ class WeaverAgent(AssistantAgent):
         super().__init__(
             name='weaver_agent',
             model_client=model_client,
+            model_client_stream=True,
             system_message=WEAVER_SYSTEM_PROMPT,
             *args,
             **kwargs,

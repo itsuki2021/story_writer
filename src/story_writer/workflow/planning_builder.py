@@ -207,5 +207,5 @@ class PlanningBuilder:
         logger.info(f"Generated {len(chapters)} chapters")
 
         # 3. Assemble the final StoryPlan object
-        story_plan = StoryPlan(event_graph=event_graph, sub_events=all_sub_events, chapters=chapters)
+        story_plan = StoryPlan(premise=premise, event_graph=event_graph, sub_events=all_sub_events, chapters=chapters)
         return story_plan

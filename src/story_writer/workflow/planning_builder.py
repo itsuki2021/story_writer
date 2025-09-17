@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import List
 
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.messages import TextMessage
@@ -11,7 +11,7 @@ from loguru import logger
 from story_writer.config import DEFAULT_MODEL_CLIENT
 from story_writer.prompts import (SUBTASKER_SYSTEM_PROMPT, SUBTASKER_USER_PROMPT, WEAVER_SYSTEM_PROMPT,
                                   WEAVER_USER_PROMPT)
-from story_writer.schemas import Event, EventGraph, StoryPlan, SubEvent
+from story_writer.schemas import EventGraph, StoryPlan, SubEvent
 from story_writer.schemas.planning_schemas import Chapter
 
 

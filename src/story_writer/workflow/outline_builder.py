@@ -384,7 +384,6 @@ class OutlineBuilder:
                 self.k_candidates,
             )
             logger.info(f"Generated {len(candidates)} event candidates")
-            logger.info(f"Event candidates: {candidates}")
             if len(candidates) == 0:
                 logger.warning('No event candidates generated, stopping')
                 break
@@ -397,7 +396,6 @@ class OutlineBuilder:
                     partial_event_list=partial_event_list,
                     candidates=candidates,
                 )
-                logger.info(f"Event validations: {event_validates}")
                 # filter out invalid events
                 event_candidate_dict = {e.event_id: e for e in candidates}
                 event_validate_dict = {e.event_id: e for e in event_validates}
@@ -429,7 +427,6 @@ class OutlineBuilder:
                     validator_feedback=invalid_event_feedback,
                 )
                 logger.info(f"Revised {len(candidates)} event candidates")
-                logger.info(f"Revised event candidates: {candidates}")
 
         # 4. Generate relations
         logger.info(f"Accepted {len(partial_event_list)} events, generating relations")

@@ -136,3 +136,5 @@ output/2586a4b5-ed73-4ab7-a5b8-23cecfb334f7/
   ...
 ]
 ```
+
+see more examples in [demo/demo.ipynb](demo/demo.ipynb)

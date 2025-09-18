@@ -44,6 +44,15 @@ $ cd story_writer
 $ uv sync
 ```
 
+Run python script
+```shell
+$ uv run xxx.py
+
+# or activate uv environment
+$ source .venv/bin/activate
+$ python xxx.py
+```
+
 ### Usage
 
 Prepare your OpenAI-compatible Model Client.
